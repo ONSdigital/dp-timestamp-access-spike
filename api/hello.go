@@ -3,17 +3,27 @@ package api
 import (
 	"context"
 	"encoding/json"
-	"net/http"
-
 	"github.com/ONSdigital/log.go/log"
+	"net/http"
+	"time"
 )
 
 // TODO: remove hello world handler
-const helloMessage = "Hello, World!"
 
 type HelloResponse struct {
 	Message string `json:"message,omitempty"`
 }
+
+type Item struct {
+	Metadata []Metadata
+}
+
+type Metadata struct {
+	publishTime time.Time
+	content     string
+}
+
+var m map[string]Metadata
 
 // HelloHandler returns function containing a simple hello world example of an api handler
 func HelloHandler(ctx context.Context) http.HandlerFunc {
@@ -22,7 +32,7 @@ func HelloHandler(ctx context.Context) http.HandlerFunc {
 		ctx := req.Context()
 
 		response := HelloResponse{
-			Message: helloMessage,
+			Message: req.URL.String(),
 		}
 
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
