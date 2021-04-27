@@ -3,45 +3,105 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/ONSdigital/log.go/log"
 	"net/http"
+	"sort"
 	"time"
 )
 
-// TODO: remove hello world handler
-
 type HelloResponse struct {
-	Message string `json:"message,omitempty"`
+	Content     string    `json:"content,omitempty"`
+	PublishTime time.Time `json:"publish_time,omitempty"`
+}
+
+type MetadataSlice []Metadata
+
+func (p MetadataSlice) Len() int {
+	fmt.Println("calling len")
+	return len(p)
+}
+
+func (p MetadataSlice) Less(i, j int) bool {
+	fmt.Println("calling less")
+	return p[i].PublishTime.After(p[j].PublishTime)
+}
+
+func (p MetadataSlice) Swap(i, j int) {
+	fmt.Println("calling swap")
+	p[i], p[j] = p[j], p[i]
 }
 
 type Item struct {
-	Metadata []Metadata
+	Metadata MetadataSlice
 }
 
 type Metadata struct {
-	publishTime time.Time
-	content     string
+	PublishTime time.Time `json:"publish_time,omitempty"`
+	Content     string    `json:"content,omitempty"`
 }
 
-var m map[string]Metadata
+var m map[string]Item
 
-func initialiseVars() Item {
-	exampleItem := Item{
+func initialiseVars() {
+
+	m = make(map[string]Item)
+
+	// current page is published
+	m["/publishedpage"] = Item{
 		[]Metadata{
 			// A page that has already been published
 			{
-				publishTime: time.Date(2020,1,1, 0, 0, 0, 0, time.UTC),
-				content:     "a page",
-			},
-			// A page that will never get published XD
-			{
-				publishTime: time.Now().UTC().Add(time.Second * 15),
-				content:     "a second page",
+				PublishTime: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+				Content:     "published page content",
 			},
 		},
 	}
 
-	return exampleItem
+	// current page is published - and a page to be published
+	m["/bulletin1"] = Item{
+		[]Metadata{
+			// A page that has already been published
+			{
+				PublishTime: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+				Content:     "the old bulletin1 version content",
+			},
+			{
+				PublishTime: time.Date(2020, 2, 1, 0, 0, 0, 0, time.UTC),
+				Content:     "the latest bulletin1 published content ",
+			},
+			// A page that will never get published XD
+			{
+				PublishTime: time.Now().UTC().Add(time.Second * 15),
+				Content:     "the bulletin1 content to be published",
+			},
+		},
+	}
+
+	// a page to be published
+	m["/tobepublished"] = Item{
+		[]Metadata{
+			// A page that will never get published XD
+			{
+				PublishTime: time.Now().UTC().Add(time.Second * 15),
+				Content:     "the bulletin1 content to be published",
+			},
+		},
+	}
+}
+
+func selectLatest(item Item) Metadata {
+
+	sort.Sort(item.Metadata)
+	for _, metadata := range item.Metadata {
+		if metadata.PublishTime.Before(time.Now()) {
+			return metadata
+		}
+	}
+
+	return Metadata{
+		Content: "content not found",
+	}
 }
 
 // HelloHandler returns function containing a simple hello world example of an api handler
@@ -50,10 +110,17 @@ func HelloHandler(ctx context.Context) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()
 
-		item := initialiseVars()
+		initialiseVars()
 
-		response := HelloResponse{
-			Message:  req.URL.String(),
+		var response Metadata
+
+		item, ok := m[req.URL.String()]
+		if !ok {
+			response = Metadata{
+				Content: "content not found - URL was not recognised",
+			}
+		} else {
+			response = selectLatest(item)
 		}
 
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
