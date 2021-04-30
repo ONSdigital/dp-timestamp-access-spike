@@ -6,13 +6,16 @@ The implementation of timestamp based access has been added to the `HelloHandler
 
 There are 3 URL's that have been configured in the prototype code to represent 3 different scenarios: 
 
-- localhost:26000/publishedpage
+localhost:26000/publishedpage
+
 A page with a single version that has a publish date in the past, so the content (`published page content`)should always be shown
 
-- localhost:26000/bulletin1
+localhost:26000/bulletin1
+
 A page that has multiple versions. Two versions that have already been published, and a version that is due to be published. Out of the 3 versions, the middle version (`the latest bulletin1 published content`) should be shown to the user, as it's the most recent version that has been published.
 
-- localhost:26000/tobepublished
+localhost:26000/tobepublished
+
 A page that has a single version with a publish time in the future. This scenario represents a new page due to be published, where no existing version has been published. In this case the content should not be shown, and a `content not found` response is returned.
 
 ### Getting started
